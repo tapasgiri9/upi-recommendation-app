@@ -1,5 +1,6 @@
 import React from 'react';
-import { CreditCard, LayoutDashboard, Settings } from 'lucide-react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { CreditCard, LayoutDashboard, Settings } from 'lucide-react-native';
 
 export type NavTab = 'pay' | 'dashboard' | 'settings';
 
@@ -16,36 +17,84 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-stone-200 z-30 pb-safe">
-      <div className="max-w-md mx-auto flex items-center justify-around px-2 py-2">
+    <View style={styles.navContainer}>
+      <View style={styles.navInner}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
 
           return (
-            <button
+            <TouchableOpacity
               key={tab.id}
-              id={`nav-tab-${tab.id}`}
-              type="button"
-              onClick={() => onTabChange(tab.id)}
-              className={`flex-1 py-1.5 px-3 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${
-                isActive
-                  ? 'text-stone-950 font-bold'
-                  : 'text-stone-600 hover:text-stone-700 font-medium'
-              }`}
+              onPress={() => onTabChange(tab.id)}
+              activeOpacity={0.7}
+              style={styles.tabButton}
             >
-              <div
-                className={`p-1.5 rounded-xl transition-all ${
-                  isActive ? 'bg-stone-900 text-white shadow-sm' : 'bg-transparent text-stone-500'
-                }`}
+              <View
+                style={[
+                  styles.iconWrapper,
+                  isActive ? styles.iconWrapperActive : styles.iconWrapperInactive,
+                ]}
               >
-                <Icon className="w-5 h-5" />
-              </div>
-              <span className="text-xs leading-none">{tab.label}</span>
-            </button>
+                <Icon size={20} color={isActive ? '#ffffff' : '#78716c'} />
+              </View>
+              <Text style={[styles.tabLabel, isActive ? styles.tabLabelActive : styles.tabLabelInactive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
           );
         })}
-      </div>
-    </nav>
+      </View>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  navContainer: {
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e7e5e4',
+    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+    paddingTop: 8,
+    paddingHorizontal: 16,
+  },
+  navInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 4,
+  },
+  iconWrapper: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapperActive: {
+    backgroundColor: '#1c1917',
+  },
+  iconWrapperInactive: {
+    backgroundColor: 'transparent',
+  },
+  tabLabel: {
+    fontSize: 11,
+  },
+  tabLabelActive: {
+    fontWeight: '800',
+    color: '#1c1917',
+  },
+  tabLabelInactive: {
+    fontWeight: '600',
+    color: '#78716c',
+  },
+});

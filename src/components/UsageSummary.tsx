@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { AppUsageStats } from '../types/paymentRecord';
 import { AppIcon } from './AppIcon';
 import { formatPaiseToRupees } from '../utils/amountUtils';
@@ -9,7 +10,6 @@ interface UsageSummaryProps {
 }
 
 export const UsageSummary: React.FC<UsageSummaryProps> = ({ appStats, totalCount }) => {
-  // Sort by count descending, then total amount descending
   const sortedStats = [...appStats].sort((a, b) => {
     if (b.count !== a.count) return b.count - a.count;
     return b.totalAmountPaise - a.totalAmountPaise;
@@ -18,87 +18,85 @@ export const UsageSummary: React.FC<UsageSummaryProps> = ({ appStats, totalCount
   const maxCount = Math.max(...appStats.map((s) => s.count), 1);
 
   return (
-    <div id="usage-distribution-container" className="w-full flex flex-col gap-4">
+    <View style={styles.container}>
       {/* Distribution Bars */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500">
-          Usage Distribution
-        </h4>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Usage Distribution</Text>
 
         {totalCount === 0 ? (
-          <div className="py-6 text-center text-xs text-stone-400">
-            No payments recorded for this period yet.
-          </div>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No payments recorded for this period yet.</Text>
+          </View>
         ) : (
-          <div className="flex flex-col gap-3">
+          <View style={styles.barsList}>
             {sortedStats.map((stat) => {
               const barWidthPercent = totalCount > 0 ? (stat.count / maxCount) * 100 : 0;
+              const barColor = getBarColor(stat.appId);
 
               return (
-                <div key={stat.appId} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <div className="flex items-center gap-2">
+                <View key={stat.appId} style={styles.barRow}>
+                  <View style={styles.barHeader}>
+                    <View style={styles.appInfo}>
                       <AppIcon appId={stat.appId} size="sm" />
-                      <span className="text-stone-800">{stat.appName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-stone-600">
-                      <span>{stat.count} {stat.count === 1 ? 'payment' : 'payments'}</span>
-                      <span className="text-stone-400 font-normal">
+                      <Text style={styles.appName}>{stat.appName}</Text>
+                    </View>
+                    <View style={styles.countInfo}>
+                      <Text style={styles.countText}>
+                        {stat.count} {stat.count === 1 ? 'payment' : 'payments'}
+                      </Text>
+                      <Text style={styles.percentText}>
                         ({Math.round(stat.percentageOfTotal)}%)
-                      </span>
-                    </div>
-                  </div>
+                      </Text>
+                    </View>
+                  </View>
 
-                  {/* Horizontal Bar */}
-                  <div className="w-full h-2.5 bg-stone-100 rounded-full overflow-hidden flex">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${barWidthPercent}%`,
-                        backgroundColor: getBarColor(stat.appId),
-                      }}
+                  {/* Horizontal Bar Track */}
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: `${Math.max(barWidthPercent, 4)}%`,
+                          backgroundColor: barColor,
+                        },
+                      ]}
                     />
-                  </div>
-                </div>
+                  </View>
+                </View>
               );
             })}
-          </div>
+          </View>
         )}
-      </div>
+      </View>
 
-      {/* Per-App Detailed Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Per-App Detailed Cards */}
+      <View style={styles.cardsGrid}>
         {sortedStats.map((stat) => (
-          <div
-            key={`card-${stat.appId}`}
-            className="bg-white border border-stone-200 rounded-2xl p-3.5 shadow-sm flex items-center justify-between hover:border-stone-300 transition"
-          >
-            <div className="flex items-center gap-3">
+          <View key={`card-${stat.appId}`} style={styles.statCard}>
+            <View style={styles.statCardLeft}>
               <AppIcon appId={stat.appId} size="md" />
-              <div>
-                <h5 className="text-sm font-bold text-stone-900 leading-tight">
-                  {stat.appName}
-                </h5>
-                <p className="text-xs text-stone-500">
+              <View>
+                <Text style={styles.statCardAppName}>{stat.appName}</Text>
+                <Text style={styles.statCardCount}>
                   {stat.count} {stat.count === 1 ? 'payment' : 'payments'}
-                </p>
-              </div>
-            </div>
+                </Text>
+              </View>
+            </View>
 
-            <div className="text-right">
-              <span className="text-sm font-extrabold text-stone-900 block">
+            <View style={styles.statCardRight}>
+              <Text style={styles.statCardTotal}>
                 {formatPaiseToRupees(stat.totalAmountPaise)}
-              </span>
+              </Text>
               {stat.count > 0 && (
-                <span className="text-[11px] text-stone-400 font-medium">
+                <Text style={styles.statCardAvg}>
                   avg {formatPaiseToRupees(stat.averageAmountPaise)}
-                </span>
+                </Text>
               )}
-            </div>
-          </div>
+            </View>
+          </View>
         ))}
-      </div>
-    </div>
+      </View>
+    </View>
   );
 };
 
@@ -109,14 +107,141 @@ function getBarColor(appId: string): string {
     case 'navi':
       return '#0284c7';
     case 'super_money':
-      return '#ec4899';
+      return '#db2777';
     case 'paytm':
       return '#00b9f1';
     case 'bhim':
       return '#ea580c';
     case 'bhim_lite':
-      return '#6366f1';
+      return '#4f46e5';
     default:
       return '#78716c';
   }
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: 14,
+    width: '100%',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    borderRadius: 20,
+    padding: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: '#78716c',
+  },
+  emptyContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 12,
+    color: '#a8a29e',
+  },
+  barsList: {
+    gap: 12,
+  },
+  barRow: {
+    gap: 6,
+  },
+  barHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  appInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  appName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1c1917',
+  },
+  countInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#44403c',
+  },
+  percentText: {
+    fontSize: 11,
+    color: '#a8a29e',
+  },
+  barTrack: {
+    height: 8,
+    backgroundColor: '#f5f5f4',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  cardsGrid: {
+    gap: 10,
+  },
+  statCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statCardAppName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1c1917',
+  },
+  statCardCount: {
+    fontSize: 11,
+    color: '#78716c',
+    marginTop: 1,
+  },
+  statCardRight: {
+    alignItems: 'flex-end',
+  },
+  statCardTotal: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1c1917',
+  },
+  statCardAvg: {
+    fontSize: 11,
+    color: '#a8a29e',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+});

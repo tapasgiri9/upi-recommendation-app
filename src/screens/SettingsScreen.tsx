@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Share,
+  Platform,
+} from 'react-native';
+import {
   Trash2,
   Database,
   Sparkles,
   Info,
   ShieldCheck,
   CheckCircle,
-  FileDown,
+  Share2,
   Terminal,
   Smartphone,
-} from 'lucide-react';
+} from 'lucide-react-native';
 import { usageStorageService } from '../services/usageStorageService';
-import { PaymentRecord } from '../types/paymentRecord';
 
 export const SettingsScreen: React.FC = () => {
   const [recordCount, setRecordCount] = useState<number>(0);
@@ -48,227 +56,531 @@ export const SettingsScreen: React.FC = () => {
   const handleExportData = async () => {
     const records = await usageStorageService.getPaymentHistory();
     const jsonStr = JSON.stringify(records, null, 2);
-    
-    // Create download blob
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `upi_payment_history_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
 
-    triggerToast('Payment history JSON downloaded.');
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `upi_payment_history_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        triggerToast('Payment history JSON downloaded.');
+        return;
+      } catch {
+        // Fallback to Share API
+      }
+    }
+
+    try {
+      await Share.share({
+        title: 'UPI Payment History Export',
+        message: jsonStr,
+      });
+      triggerToast('Export shared successfully.');
+    } catch {
+      triggerToast('Unable to share export data.');
+    }
   };
 
   return (
-    <div id="settings-screen" className="w-full max-w-md mx-auto flex flex-col gap-5 pb-28 pt-2">
-      {/* Toast alert */}
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-16 inset-x-4 max-w-md mx-auto z-50 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-3 duration-200">
-          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
+        <View style={styles.toast}>
+          <CheckCircle size={16} color="#4ade80" />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
       )}
 
-      {/* Title */}
-      <div>
-        <h2 className="text-xl font-bold text-stone-900 tracking-tight">Settings</h2>
-        <p className="text-xs text-stone-500">
+      {/* Screen Title */}
+      <View style={styles.titleBlock}>
+        <Text style={styles.screenTitle}>Settings</Text>
+        <Text style={styles.screenSubtitle}>
           Personal configuration, privacy & offline storage
-        </p>
-      </div>
+        </Text>
+      </View>
 
-      {/* Application Info */}
-      <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm flex flex-col gap-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-          <Info className="w-4 h-4" />
-          <span>Application</span>
-        </h3>
+      {/* Application Info Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Info size={16} color="#78716c" />
+          <Text style={styles.cardTitle}>Application</Text>
+        </View>
 
-        <div className="flex items-center justify-between text-xs py-1 border-b border-stone-100">
-          <span className="text-stone-600 font-medium">App Name</span>
-          <span className="font-bold text-stone-900">UPI Recommendation Assistant</span>
-        </div>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>App Name</Text>
+          <Text style={styles.rowValueBold}>UPI Recommendation Assistant</Text>
+        </View>
 
-        <div className="flex items-center justify-between text-xs py-1 border-b border-stone-100">
-          <span className="text-stone-600 font-medium">Version</span>
-          <span className="font-mono font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded">
-            v1.0.0
-          </span>
-        </div>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Version</Text>
+          <View style={styles.versionBadge}>
+            <Text style={styles.versionText}>v1.0.0</Text>
+          </View>
+        </View>
 
-        <div className="flex items-center justify-between text-xs py-1 border-b border-stone-100">
-          <span className="text-stone-600 font-medium">Stored Records</span>
-          <span className="font-bold text-stone-900">
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Stored Records</Text>
+          <Text style={styles.rowValueBold}>
             {recordCount} {recordCount === 1 ? 'transaction' : 'transactions'}
-          </span>
-        </div>
+          </Text>
+        </View>
 
-        <div className="flex items-center justify-between text-xs py-1">
-          <span className="text-stone-600 font-medium">Architecture</span>
-          <span className="text-emerald-700 font-bold flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            100% Local & Offline
-          </span>
-        </div>
-      </div>
+        <View style={[styles.row, { borderBottomWidth: 0 }]}>
+          <Text style={styles.rowLabel}>Architecture</Text>
+          <View style={styles.offlineBadge}>
+            <ShieldCheck size={14} color="#15803d" />
+            <Text style={styles.offlineText}>100% Offline</Text>
+          </View>
+        </View>
+      </View>
 
-      {/* Data Management */}
-      <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm flex flex-col gap-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-          <Database className="w-4 h-4" />
-          <span>Data Storage</span>
-        </h3>
+      {/* Data Storage Management */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Database size={16} color="#78716c" />
+          <Text style={styles.cardTitle}>Data Storage</Text>
+        </View>
 
-        <p className="text-xs text-stone-500 leading-relaxed">
+        <Text style={styles.descText}>
           All recommendations are saved to your local device storage. No data is ever transmitted to external servers.
-        </p>
+        </Text>
 
-        <div className="flex flex-col gap-2 pt-2">
+        <View style={styles.actionButtons}>
           {/* Seed Sample Records */}
-          <button
-            type="button"
-            id="btn-seed-sample-data"
-            onClick={handleSeedSampleData}
-            className="w-full py-3 px-4 rounded-xl border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-between transition"
+          <TouchableOpacity
+            onPress={handleSeedSampleData}
+            activeOpacity={0.7}
+            style={styles.actionButton}
           >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Seed Multi-Day Sample History</span>
-            </div>
-            <span className="text-[10px] text-stone-400 uppercase font-bold">10 items</span>
-          </button>
+            <View style={styles.actionButtonLeft}>
+              <Sparkles size={16} color="#f59e0b" />
+              <Text style={styles.actionButtonText}>Seed Multi-Day Sample History</Text>
+            </View>
+            <Text style={styles.badgeSmall}>10 items</Text>
+          </TouchableOpacity>
 
           {/* Export JSON */}
-          <button
-            type="button"
-            id="btn-export-data"
-            onClick={handleExportData}
+          <TouchableOpacity
+            onPress={handleExportData}
             disabled={recordCount === 0}
-            className={`w-full py-3 px-4 rounded-xl border font-semibold text-xs flex items-center justify-between transition ${
-              recordCount > 0
-                ? 'border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-800'
-                : 'border-stone-100 bg-stone-50/50 text-stone-300 cursor-not-allowed'
-            }`}
+            activeOpacity={0.7}
+            style={[
+              styles.actionButton,
+              recordCount === 0 && styles.actionButtonDisabled,
+            ]}
           >
-            <div className="flex items-center gap-2">
-              <FileDown className="w-4 h-4 text-stone-600" />
-              <span>Export History to JSON</span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold">.json</span>
-          </button>
+            <View style={styles.actionButtonLeft}>
+              <Share2 size={16} color="#78716c" />
+              <Text
+                style={[
+                  styles.actionButtonText,
+                  recordCount === 0 && styles.actionButtonTextDisabled,
+                ]}
+              >
+                Export History (JSON / Share)
+              </Text>
+            </View>
+            <Text style={styles.badgeSmall}>.json</Text>
+          </TouchableOpacity>
 
           {/* Clear History */}
           {!showClearConfirm ? (
-            <button
-              type="button"
-              id="btn-clear-history"
-              onClick={() => setShowClearConfirm(true)}
+            <TouchableOpacity
+              onPress={() => setShowClearConfirm(true)}
               disabled={recordCount === 0}
-              className={`w-full py-3 px-4 rounded-xl border font-semibold text-xs flex items-center justify-between transition ${
-                recordCount > 0
-                  ? 'border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700'
-                  : 'border-stone-100 bg-stone-50/50 text-stone-300 cursor-not-allowed'
-              }`}
+              activeOpacity={0.7}
+              style={[
+                styles.actionButtonDanger,
+                recordCount === 0 && styles.actionButtonDisabled,
+              ]}
             >
-              <div className="flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-rose-600" />
-                <span>Clear Payment History</span>
-              </div>
-              <span className="text-[10px] text-rose-400 font-bold">Reset</span>
-            </button>
+              <View style={styles.actionButtonLeft}>
+                <Trash2 size={16} color="#e11d48" />
+                <Text
+                  style={[
+                    styles.actionButtonDangerText,
+                    recordCount === 0 && styles.actionButtonTextDisabled,
+                  ]}
+                >
+                  Clear Payment History
+                </Text>
+              </View>
+              <Text style={styles.badgeDanger}>Reset</Text>
+            </TouchableOpacity>
           ) : (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex flex-col gap-2 animate-in fade-in duration-150">
-              <p className="text-xs font-bold text-rose-900">
+            <View style={styles.confirmBox}>
+              <Text style={styles.confirmTitle}>
                 Are you sure you want to clear all history?
-              </p>
-              <p className="text-[11px] text-rose-700">
+              </Text>
+              <Text style={styles.confirmDesc}>
                 This will delete all {recordCount} recorded payments. This action cannot be undone.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  id="btn-confirm-clear"
-                  onClick={handleClearHistory}
-                  className="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-sm"
+              </Text>
+              <View style={styles.confirmRow}>
+                <TouchableOpacity
+                  onPress={handleClearHistory}
+                  style={styles.confirmBtnYes}
                 >
-                  Yes, Clear All
-                </button>
-                <button
-                  type="button"
-                  id="btn-cancel-clear"
-                  onClick={() => setShowClearConfirm(false)}
-                  className="flex-1 py-2 px-3 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold text-xs rounded-lg"
+                  <Text style={styles.confirmBtnYesText}>Yes, Clear All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowClearConfirm(false)}
+                  style={styles.confirmBtnNo}
                 >
-                  Cancel
-                </button>
-              </div>
-            </div>
+                  <Text style={styles.confirmBtnNoText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
-        </div>
-      </div>
+        </View>
+      </View>
 
       {/* Decision Rules Reference */}
-      <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm flex flex-col gap-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-          <Terminal className="w-4 h-4" />
-          <span>Decision Rules Matrix</span>
-        </h3>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Terminal size={16} color="#78716c" />
+          <Text style={styles.cardTitle}>Decision Rules Matrix</Text>
+        </View>
 
-        <div className="space-y-2 text-xs">
-          <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-            <span className="font-semibold text-stone-700">₹0 – ₹50</span>
-            <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-              BHIM UPI Lite
-            </span>
-          </div>
+        <View style={styles.ruleItems}>
+          <View style={styles.ruleItem}>
+            <Text style={styles.ruleRange}>₹0 – ₹50</Text>
+            <View style={[styles.ruleTag, { backgroundColor: '#e0e7ff' }]}>
+              <Text style={[styles.ruleTagText, { color: '#4338ca' }]}>
+                BHIM UPI Lite
+              </Text>
+            </View>
+          </View>
 
-          <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-            <span className="font-semibold text-stone-700">₹50.01 – ₹99.99</span>
-            <span className="font-bold text-stone-800 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-              Balanced (Navi / super / Paytm / BHIM)
-            </span>
-          </div>
+          <View style={styles.ruleItem}>
+            <Text style={styles.ruleRange}>₹50.01 – ₹99.99</Text>
+            <View style={[styles.ruleTag, { backgroundColor: '#f5f5f4' }]}>
+              <Text style={[styles.ruleTagText, { color: '#292524' }]}>
+                Balanced (Navi / super / Paytm / BHIM)
+              </Text>
+            </View>
+          </View>
 
-          <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-            <span className="font-semibold text-stone-700">₹100+ (RuPay = YES)</span>
-            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-              Kiwi (RuPay on UPI)
-            </span>
-          </div>
+          <View style={styles.ruleItem}>
+            <Text style={styles.ruleRange}>₹100+ (RuPay = YES)</Text>
+            <View style={[styles.ruleTag, { backgroundColor: '#dcfce7' }]}>
+              <Text style={[styles.ruleTagText, { color: '#166534' }]}>
+                Kiwi (RuPay on UPI)
+              </Text>
+            </View>
+          </View>
 
-          <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between">
-            <span className="font-semibold text-stone-700">₹100+ (RuPay = NO)</span>
-            <span className="font-bold text-stone-800 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-              Balanced (Navi / super / Paytm / BHIM)
-            </span>
-          </div>
-        </div>
-      </div>
+          <View style={styles.ruleItem}>
+            <Text style={styles.ruleRange}>₹100+ (RuPay = NO)</Text>
+            <View style={[styles.ruleTag, { backgroundColor: '#f5f5f4' }]}>
+              <Text style={[styles.ruleTagText, { color: '#292524' }]}>
+                Balanced (Navi / super / Paytm / BHIM)
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
 
-      {/* APK & System Build Guide */}
-      <div className="bg-stone-900 text-stone-100 rounded-3xl p-5 shadow-md flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-amber-400">
-          <Smartphone className="w-4 h-4" />
-          <h3 className="text-xs font-bold uppercase tracking-wider">
-            Android APK & System Build
-          </h3>
-        </div>
-
-        <p className="text-xs text-stone-300 leading-relaxed">
-          You can download this project as a ZIP file from Google AI Studio settings and build the Android APK on your system:
-        </p>
-
-        <div className="bg-stone-950 p-3 rounded-xl font-mono text-[11px] text-stone-300 space-y-1 overflow-x-auto border border-stone-800">
-          <p className="text-emerald-400 font-semibold"># 1. Install dependencies</p>
-          <p className="text-stone-200">npm install</p>
-          <p className="text-emerald-400 font-semibold pt-1"># 2. Run EAS Android preview build</p>
-          <p className="text-stone-200">npx eas build -p android --profile preview</p>
-          <p className="text-emerald-400 font-semibold pt-1"># 3. Or run standalone local web / PWA</p>
-          <p className="text-stone-200">npm run build && npm run preview</p>
-        </div>
-      </div>
-    </div>
+      {/* EAS & APK Instructions */}
+      <View style={styles.apkCard}>
+        <View style={styles.apkHeader}>
+          <Smartphone size={16} color="#facc15" />
+          <Text style={styles.apkTitle}>Android APK & EAS Build</Text>
+        </View>
+        <Text style={styles.apkDesc}>
+          To build an installable Android APK directly on your phone:
+        </Text>
+        <View style={styles.codeBox}>
+          <Text style={styles.codeComment}># Run EAS Android build</Text>
+          <Text style={styles.codeLine}>eas build --platform android --profile preview</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 40,
+    gap: 16,
+  },
+  toast: {
+    backgroundColor: '#1c1917',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  toastText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  titleBlock: {
+    gap: 2,
+  },
+  screenTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1c1917',
+    letterSpacing: -0.4,
+  },
+  screenSubtitle: {
+    fontSize: 12,
+    color: '#78716c',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    borderRadius: 24,
+    padding: 18,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: '#78716c',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f4',
+  },
+  rowLabel: {
+    fontSize: 12,
+    color: '#57534e',
+    fontWeight: '500',
+  },
+  rowValueBold: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1c1917',
+  },
+  versionBadge: {
+    backgroundColor: '#f5f5f4',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  versionText: {
+    fontSize: 11,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: '#1c1917',
+  },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  offlineText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#15803d',
+  },
+  descText: {
+    fontSize: 12,
+    color: '#78716c',
+    lineHeight: 17,
+  },
+  actionButtons: {
+    gap: 8,
+    marginTop: 4,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fafaf9',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+  },
+  actionButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#292524',
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionButtonTextDisabled: {
+    color: '#a8a29e',
+  },
+  badgeSmall: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#a8a29e',
+    textTransform: 'uppercase',
+  },
+  actionButtonDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+  },
+  actionButtonDangerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#e11d48',
+  },
+  badgeDanger: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fb7185',
+  },
+  confirmBox: {
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    borderRadius: 14,
+    padding: 12,
+    gap: 8,
+  },
+  confirmTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#881337',
+  },
+  confirmDesc: {
+    fontSize: 11,
+    color: '#9f1239',
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  confirmBtnYes: {
+    flex: 1,
+    backgroundColor: '#e11d48',
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  confirmBtnYesText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  confirmBtnNo: {
+    flex: 1,
+    backgroundColor: '#e7e5e4',
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  confirmBtnNoText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#44403c',
+  },
+  ruleItems: {
+    gap: 8,
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fafaf9',
+    borderWidth: 1,
+    borderColor: '#f5f5f4',
+    padding: 10,
+    borderRadius: 12,
+  },
+  ruleRange: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#44403c',
+  },
+  ruleTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  ruleTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  apkCard: {
+    backgroundColor: '#1c1917',
+    borderRadius: 24,
+    padding: 18,
+    gap: 10,
+  },
+  apkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  apkTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#facc15',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  apkDesc: {
+    fontSize: 12,
+    color: '#d6d3d1',
+  },
+  codeBox: {
+    backgroundColor: '#0c0a09',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#292524',
+    gap: 4,
+  },
+  codeComment: {
+    fontSize: 11,
+    color: '#4ade80',
+    fontFamily: 'monospace',
+    fontWeight: '600',
+  },
+  codeLine: {
+    fontSize: 11,
+    color: '#f5f5f4',
+    fontFamily: 'monospace',
+  },
+});

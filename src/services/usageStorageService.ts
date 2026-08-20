@@ -1,9 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PaymentRecord } from '../types/paymentRecord';
 import { STORAGE_KEYS } from '../storage/storageKeys';
 
 /**
- * Storage service providing safe, resilient persistence for payment records.
- * Supports web localStorage and seamlessly bridges to React Native AsyncStorage patterns.
+ * Universal Storage service providing safe, resilient persistence for payment records.
+ * Supports React Native AsyncStorage natively on Android/iOS, and falls back to window.localStorage in web browsers.
  */
 class UsageStorageService {
   private memoryCache: PaymentRecord[] | null = null;
@@ -38,28 +39,31 @@ class UsageStorageService {
     }
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem(STORAGE_KEYS.PAYMENT_HISTORY);
-        if (!raw) {
-          this.memoryCache = [];
-          return [];
-        }
+      let raw: string | null = null;
+      if (AsyncStorage && typeof AsyncStorage.getItem === 'function') {
+        raw = await AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_HISTORY);
+      } else if (typeof window !== 'undefined' && window.localStorage) {
+        raw = window.localStorage.getItem(STORAGE_KEYS.PAYMENT_HISTORY);
+      }
 
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          // Validate record shape
-          const validated = parsed.filter(
-            (item): item is PaymentRecord =>
-              item &&
-              typeof item.id === 'string' &&
-              typeof item.appId === 'string' &&
-              typeof item.amountPaise === 'number' &&
-              typeof item.timestamp === 'number' &&
-              typeof item.recommendationType === 'string'
-          );
-          this.memoryCache = validated;
-          return [...validated];
-        }
+      if (!raw) {
+        this.memoryCache = [];
+        return [];
+      }
+
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const validated = parsed.filter(
+          (item): item is PaymentRecord =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.appId === 'string' &&
+            typeof item.amountPaise === 'number' &&
+            typeof item.timestamp === 'number' &&
+            typeof item.recommendationType === 'string'
+        );
+        this.memoryCache = validated;
+        return [...validated];
       }
     } catch (err) {
       console.error('Failed to parse stored payment history. Recovering with empty state.', err);
@@ -78,8 +82,11 @@ class UsageStorageService {
     this.memoryCache = updated;
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, JSON.stringify(updated));
+      const jsonStr = JSON.stringify(updated);
+      if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
+        await AsyncStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, jsonStr);
+      } else if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, jsonStr);
       }
     } catch (err) {
       console.error('Unable to save payment history to storage', err);
@@ -94,7 +101,9 @@ class UsageStorageService {
   public async clearPaymentHistory(): Promise<void> {
     this.memoryCache = [];
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (AsyncStorage && typeof AsyncStorage.removeItem === 'function') {
+        await AsyncStorage.removeItem(STORAGE_KEYS.PAYMENT_HISTORY);
+      } else if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(STORAGE_KEYS.PAYMENT_HISTORY);
       }
     } catch (err) {
@@ -109,8 +118,11 @@ class UsageStorageService {
   public async setPaymentHistory(records: PaymentRecord[]): Promise<void> {
     this.memoryCache = [...records];
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, JSON.stringify(records));
+      const jsonStr = JSON.stringify(records);
+      if (AsyncStorage && typeof AsyncStorage.setItem === 'function') {
+        await AsyncStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, jsonStr);
+      } else if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.PAYMENT_HISTORY, jsonStr);
       }
     } catch (err) {
       console.error('Failed to set payment history', err);

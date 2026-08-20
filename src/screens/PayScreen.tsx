@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, Zap, Scale, CreditCard } from 'lucide-react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import { Sparkles, ArrowRight, Zap, Scale, CreditCard } from 'lucide-react-native';
 import { AmountInput } from '../components/AmountInput';
 import { RupaySelector } from '../components/RupaySelector';
 import { RecommendationCard } from '../components/RecommendationCard';
@@ -15,18 +23,14 @@ export const PayScreen: React.FC = () => {
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [recommendationResult, setRecommendationResult] = useState<RecommendationResult | null>(null);
 
-  // Validate amount on change
   const validation = amountText ? parseRupeesToPaise(amountText) : null;
   const isAmountValid = validation?.isValid ?? false;
   const amountPaise = validation?.amountPaise ?? 0;
 
-  // RuPay condition is only required when amount >= ₹100 (10000 paise)
   const isRupayRequired = isAmountValid && amountPaise >= PAYMENT_THRESHOLDS.KIWI_MIN_PAISE;
   const isRupaySpecified = !isRupayRequired || rupayAccepted !== null;
-
   const canRecommend = isAmountValid && isRupaySpecified;
 
-  // Clear RuPay choice if amount drops below ₹100
   useEffect(() => {
     if (amountPaise < PAYMENT_THRESHOLDS.KIWI_MIN_PAISE && rupayAccepted !== null) {
       setRupayAccepted(null);
@@ -74,31 +78,28 @@ export const PayScreen: React.FC = () => {
   };
 
   return (
-    <div id="pay-screen" className="w-full max-w-md mx-auto flex flex-col gap-5 pb-24 pt-2">
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
       {recommendationResult ? (
         <RecommendationCard result={recommendationResult} onReset={handleReset} />
       ) : (
-        <div className="flex flex-col gap-5">
+        <View style={styles.formContainer}>
           {/* Intro Card */}
-          <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-5 text-white shadow-md relative overflow-hidden">
-            <div className="relative z-10 flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Smart Payment Router</span>
-              </div>
-              <h2 className="text-xl font-bold tracking-tight text-white">
-                Which app should you use?
-              </h2>
-              <p className="text-xs text-stone-300">
-                Enter the amount below. We balance your usage across BHIM, Navi, Paytm, super.money, and Kiwi.
-              </p>
-            </div>
-            {/* Ambient decoration */}
-            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-stone-700/30 rounded-full blur-2xl" />
-          </div>
+          <View style={styles.heroCard}>
+            <View style={styles.heroBadge}>
+              <Sparkles size={13} color="#facc15" />
+              <Text style={styles.heroBadgeText}>Smart Payment Router</Text>
+            </View>
+            <Text style={styles.heroTitle}>Which app should you use?</Text>
+            <Text style={styles.heroSubtitle}>
+              Enter the amount below. We balance your usage across BHIM, Navi, Paytm, super.money, and Kiwi.
+            </Text>
+          </View>
 
-          {/* Main Input Form */}
-          <div className="bg-white border border-stone-200 rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col gap-5">
+          {/* Main Card */}
+          <View style={styles.mainCard}>
             <AmountInput
               value={amountText}
               onChange={(val) => {
@@ -108,104 +109,214 @@ export const PayScreen: React.FC = () => {
               error={error}
             />
 
-            {/* Conditional RuPay Question */}
+            {/* Conditional RuPay Selector */}
             {isRupayRequired && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                <RupaySelector value={rupayAccepted} onChange={setRupayAccepted} />
-              </div>
+              <RupaySelector value={rupayAccepted} onChange={setRupayAccepted} />
             )}
 
             {/* Dynamic Rule Preview Indicator */}
             {isAmountValid && (
-              <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 text-xs flex items-center gap-3">
+              <View style={styles.rulePreview}>
                 {amountPaise <= PAYMENT_THRESHOLDS.BHIM_LITE_MAX_PAISE ? (
                   <>
-                    <div className="p-2 rounded-xl bg-indigo-100 text-indigo-700 shrink-0">
-                      <Zap className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-stone-900 block">
-                        Micro-payment Rule (≤ ₹50)
-                      </span>
-                      <span className="text-stone-500">
-                        Will recommend <strong className="text-indigo-600">BHIM UPI Lite</strong> instantly.
-                      </span>
-                    </div>
+                    <View style={[styles.ruleIconWrapper, { backgroundColor: '#e0e7ff' }]}>
+                      <Zap size={16} color="#4338ca" />
+                    </View>
+                    <View style={styles.ruleTextColumn}>
+                      <Text style={styles.ruleTitle}>Micro-payment Rule (≤ ₹50)</Text>
+                      <Text style={styles.ruleDesc}>
+                        Will recommend <Text style={{ color: '#4f46e5', fontWeight: '700' }}>BHIM UPI Lite</Text> instantly.
+                      </Text>
+                    </View>
                   </>
                 ) : amountPaise < PAYMENT_THRESHOLDS.KIWI_MIN_PAISE ? (
                   <>
-                    <div className="p-2 rounded-xl bg-sky-100 text-sky-700 shrink-0">
-                      <Scale className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-stone-900 block">
-                        Mid-range Rule (₹50.01 – ₹99.99)
-                      </span>
-                      <span className="text-stone-500">
+                    <View style={[styles.ruleIconWrapper, { backgroundColor: '#e0f2fe' }]}>
+                      <Scale size={16} color="#0369a1" />
+                    </View>
+                    <View style={styles.ruleTextColumn}>
+                      <Text style={styles.ruleTitle}>Mid-range Rule (₹50.01 – ₹99.99)</Text>
+                      <Text style={styles.ruleDesc}>
                         Balances usage across Navi, super.money, Paytm, and BHIM.
-                      </span>
-                    </div>
+                      </Text>
+                    </View>
                   </>
                 ) : rupayAccepted === true ? (
                   <>
-                    <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
-                      <CreditCard className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-stone-900 block">
-                        RuPay Credit on UPI (≥ ₹100)
-                      </span>
-                      <span className="text-stone-500">
-                        Will recommend <strong className="text-emerald-700">Kiwi</strong> for cashback/rewards.
-                      </span>
-                    </div>
+                    <View style={[styles.ruleIconWrapper, { backgroundColor: '#dcfce7' }]}>
+                      <CreditCard size={16} color="#15803d" />
+                    </View>
+                    <View style={styles.ruleTextColumn}>
+                      <Text style={styles.ruleTitle}>RuPay Credit on UPI (≥ ₹100)</Text>
+                      <Text style={styles.ruleDesc}>
+                        Will recommend <Text style={{ color: '#16a34a', fontWeight: '700' }}>Kiwi</Text> for rewards.
+                      </Text>
+                    </View>
                   </>
                 ) : (
                   <>
-                    <div className="p-2 rounded-xl bg-purple-100 text-purple-700 shrink-0">
-                      <Scale className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-stone-900 block">
-                        Standard UPI (≥ ₹100)
-                      </span>
-                      <span className="text-stone-500">
+                    <View style={[styles.ruleIconWrapper, { backgroundColor: '#f3e8ff' }]}>
+                      <Scale size={16} color="#7e22ce" />
+                    </View>
+                    <View style={styles.ruleTextColumn}>
+                      <Text style={styles.ruleTitle}>Standard UPI (≥ ₹100)</Text>
+                      <Text style={styles.ruleDesc}>
                         Balances usage across Navi, super.money, Paytm, and BHIM.
-                      </span>
-                    </div>
+                      </Text>
+                    </View>
                   </>
                 )}
-              </div>
+              </View>
             )}
 
             {/* Recommendation Submit Button */}
-            <button
-              type="button"
-              id="btn-get-recommendation"
-              onClick={handleGetRecommendation}
+            <TouchableOpacity
+              onPress={handleGetRecommendation}
               disabled={!canRecommend || isEvaluating}
-              className={`w-full py-4 px-6 rounded-2xl font-bold text-sm tracking-wide shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+              activeOpacity={0.8}
+              style={[
+                styles.submitButton,
                 canRecommend && !isEvaluating
-                  ? 'bg-stone-900 hover:bg-black text-white cursor-pointer shadow-md'
-                  : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-              }`}
+                  ? styles.submitButtonEnabled
+                  : styles.submitButtonDisabled,
+              ]}
             >
               {isEvaluating ? (
-                <span>Routing Payment...</span>
+                <ActivityIndicator color="#ffffff" size="small" />
               ) : (
                 <>
-                  <span>
+                  <Text
+                    style={[
+                      styles.submitButtonText,
+                      canRecommend ? styles.submitButtonTextEnabled : styles.submitButtonTextDisabled,
+                    ]}
+                  >
                     {isAmountValid
                       ? `Recommend for ${formatPaiseToRupees(amountPaise)}`
                       : 'Enter Amount to Recommend'}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
+                  </Text>
+                  <ArrowRight
+                    size={16}
+                    color={canRecommend ? '#ffffff' : '#a8a29e'}
+                  />
                 </>
               )}
-            </button>
-          </div>
-        </div>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
-    </div>
+    </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 40,
+    gap: 16,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  heroCard: {
+    backgroundColor: '#1c1917',
+    borderRadius: 24,
+    padding: 18,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#facc15',
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.4,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: '#d6d3d1',
+    lineHeight: 17,
+  },
+  mainCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    borderRadius: 24,
+    padding: 18,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  rulePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#fafaf9',
+    borderWidth: 1,
+    borderColor: '#e7e5e4',
+    padding: 12,
+    borderRadius: 16,
+  },
+  ruleIconWrapper: {
+    padding: 8,
+    borderRadius: 10,
+  },
+  ruleTextColumn: {
+    flex: 1,
+  },
+  ruleTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1c1917',
+  },
+  ruleDesc: {
+    fontSize: 11,
+    color: '#78716c',
+    marginTop: 1,
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  submitButtonEnabled: {
+    backgroundColor: '#1c1917',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#e7e5e4',
+  },
+  submitButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  submitButtonTextEnabled: {
+    color: '#ffffff',
+  },
+  submitButtonTextDisabled: {
+    color: '#a8a29e',
+  },
+});
