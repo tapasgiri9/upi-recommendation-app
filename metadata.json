@@ -1,0 +1,6 @@
+{
+  "name": "UPI Recommendation Assistant",
+  "description": "A lightweight personal assistant that smartly recommends which UPI payment app to use based on transaction amount, RuPay acceptance, and historical usage balancing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

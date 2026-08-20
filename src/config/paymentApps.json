@@ -1,0 +1,58 @@
+{
+  "apps": [
+    {
+      "id": "kiwi",
+      "name": "Kiwi",
+      "category": "rupay",
+      "recommendationEligible": false,
+      "color": "#16a34a",
+      "bgColor": "#dcfce7",
+      "tagline": "RuPay Credit on UPI Rewards"
+    },
+    {
+      "id": "navi",
+      "name": "Navi",
+      "category": "upi",
+      "recommendationEligible": true,
+      "color": "#0284c7",
+      "bgColor": "#e0f2fe",
+      "tagline": "Seamless UPI Payments"
+    },
+    {
+      "id": "super_money",
+      "name": "super.money",
+      "category": "upi",
+      "recommendationEligible": true,
+      "color": "#ec4899",
+      "bgColor": "#fce7f3",
+      "tagline": "High Cashback UPI"
+    },
+    {
+      "id": "paytm",
+      "name": "Paytm",
+      "category": "upi",
+      "recommendationEligible": true,
+      "color": "#00b9f1",
+      "bgColor": "#e0f7fa",
+      "tagline": "Fast UPI & Wallet"
+    },
+    {
+      "id": "bhim",
+      "name": "BHIM",
+      "category": "upi",
+      "recommendationEligible": true,
+      "color": "#ea580c",
+      "bgColor": "#ffedd5",
+      "tagline": "National NPCI Direct UPI"
+    },
+    {
+      "id": "bhim_lite",
+      "name": "BHIM UPI Lite",
+      "category": "upi_lite",
+      "recommendationEligible": false,
+      "color": "#6366f1",
+      "bgColor": "#e0e7ff",
+      "tagline": "PIN-less Instant Micro-payments"
+    }
+  ]
+}
