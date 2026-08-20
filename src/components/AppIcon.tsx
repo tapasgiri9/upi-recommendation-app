@@ -19,7 +19,7 @@ const ICON_DIMENSIONS = {
 // Map each payment app ID directly to its corresponding PNG file in the assets/ directory
 const APP_ASSET_IMAGES: Record<PaymentAppId, ImageSourcePropType> = {
   kiwi: require('../../assets/kiwi.png'),
-  navi: require('../../assets/navi.png'),
+  navi: require('../../assets/navi_icon.png'),
   super_money: require('../../assets/super_money.png'),
   paytm: require('../../assets/paytm.png'),
   bhim: require('../../assets/bhim.png'),
