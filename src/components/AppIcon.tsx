@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, ImageSourcePropType } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { PaymentAppId } from '../types/paymentApp';
 
@@ -16,15 +16,27 @@ const ICON_DIMENSIONS = {
   xl: 84,
 };
 
+// Map each payment app ID directly to its corresponding PNG file in the assets/ directory
+const APP_ASSET_IMAGES: Record<PaymentAppId, ImageSourcePropType> = {
+  kiwi: require('../../assets/kiwi.png'),
+  navi: require('../../assets/navi.png'),
+  super_money: require('../../assets/super_money.png'),
+  paytm: require('../../assets/paytm.png'),
+  bhim: require('../../assets/bhim.png'),
+  bhim_lite: require('../../assets/bhim_lite.png'),
+};
+
 export const AppIcon: React.FC<AppIconProps> = ({
   appId,
   size = 'md',
   showBadge = false,
 }) => {
   const dimension = ICON_DIMENSIONS[size];
-  const borderRadius = Math.round(dimension * 0.32);
+  const borderRadius = Math.round(dimension * 0.28);
+  const [imageError, setImageError] = useState(false);
 
-  const renderIconContent = () => {
+  // Fallback vector SVG renderer if image is missing or cannot be loaded
+  const renderFallbackSvg = () => {
     switch (appId) {
       case 'kiwi':
         return (
@@ -45,11 +57,6 @@ export const AppIcon: React.FC<AppIconProps> = ({
               <Circle cx="12" cy="12" r="2.5" fill="#fef08a" />
               <Path d="M12 4V7M12 17V20M4 12H7M17 12H20" stroke="#fef08a" strokeWidth="1.5" strokeLinecap="round" />
             </Svg>
-            {showBadge && (
-              <View style={styles.kiwiBadge}>
-                <Text style={styles.kiwiBadgeText}>RUPAY</Text>
-              </View>
-            )}
           </View>
         );
 
@@ -169,9 +176,6 @@ export const AppIcon: React.FC<AppIconProps> = ({
                 strokeLinejoin="round"
               />
             </Svg>
-            <View style={styles.bhimLiteBadge}>
-              <Text style={styles.bhimLiteBadgeText}>LITE</Text>
-            </View>
           </View>
         );
 
@@ -194,7 +198,49 @@ export const AppIcon: React.FC<AppIconProps> = ({
     }
   };
 
-  return <View style={styles.container}>{renderIconContent()}</View>;
+  const imageSource = APP_ASSET_IMAGES[appId];
+
+  return (
+    <View style={styles.container}>
+      <View
+        style={[
+          styles.iconBase,
+          {
+            width: dimension,
+            height: dimension,
+            borderRadius,
+          },
+        ]}
+      >
+        {imageSource && !imageError ? (
+          <Image
+            source={imageSource}
+            style={{
+              width: dimension,
+              height: dimension,
+              borderRadius,
+            }}
+            resizeMode="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          renderFallbackSvg()
+        )}
+
+        {/* Optional Badges */}
+        {showBadge && appId === 'kiwi' && (
+          <View style={styles.kiwiBadge}>
+            <Text style={styles.kiwiBadgeText}>RUPAY</Text>
+          </View>
+        )}
+        {appId === 'bhim_lite' && (
+          <View style={styles.bhimLiteBadge}>
+            <Text style={styles.bhimLiteBadgeText}>LITE</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -236,6 +282,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     paddingVertical: 1,
     borderRadius: 2,
+    zIndex: 10,
   },
   kiwiBadgeText: {
     fontSize: 7,
@@ -250,6 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f59e0b',
     paddingVertical: 1,
     alignItems: 'center',
+    zIndex: 10,
   },
   bhimLiteBadgeText: {
     fontSize: 7,
